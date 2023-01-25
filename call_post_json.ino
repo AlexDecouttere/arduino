@@ -4,8 +4,8 @@
 #include <Keypad.h>
 
 int relai = 11;
-const byte LIGNE = 4;    // 4 lignes
-const byte COLONNE = 4;  // 4 colonnes
+const byte LIGNE = 4;
+const byte COLONNE = 4;
 char touche;
 String input_password;
 
@@ -81,7 +81,6 @@ void setup() {
 }
 
 
-
 void loop() {
   digitalWrite(relai, LOW);
   String response = "";
@@ -102,6 +101,7 @@ void loop() {
           clientSSL.println("Host: locbuy-dwlpupmbfa-ew.a.run.app");
           clientSSL.println("Authorization: " + token);
           clientSSL.println();
+
           delay(1000);
           String tokenResponse = "";
           while (clientSSL.connected()) {
@@ -113,20 +113,18 @@ void loop() {
             }
           }
           Serial.println();
-          for (int t=0; t<866; t++)
-            {
-              tokenResponse.remove(tokenResponse.length() - 1);
-            }
+          for (int t = 0; t < 866; t++) {
+            tokenResponse.remove(tokenResponse.length() - 1);
+          }
           response = tokenResponse;
-          Serial.println("response: "+response);
+          Serial.println("response: " + response);
         }
-        if(response = "HTTP/1.1 200 OK"){
+        if (response = "HTTP/1.1 200 OK") {
           digitalWrite(relai, HIGH);
           Serial.println("casier: ouvert");
           delay(5000);
         }
         Serial.println("casier: ferme");
-
 
         input_password = "";
       } else {
