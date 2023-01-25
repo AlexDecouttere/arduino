@@ -30,7 +30,7 @@ const char* password = "Zg5shalex";
 //Your Domain name with URL path or IP address with path
 const char* host = "locbuy-dwlpupmbfa-ew.a.run.app";
 const char* hostAuth = "locbuy-auth-dwlpupmbfa-ew.a.run.app";
-const String data = "{\"client\":\"Aiolia\"}";
+const String dataToken = "{\"client\":\"Aiolia\"}";
 const char* pathAuth = "/auth/token";
 const char* path = "/sites";
 const char* serverName = "httpbin.org";
@@ -41,23 +41,23 @@ WiFiClient wifi;
 WiFiSSLClient clientSSL;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
 
   WiFi.begin(ssid, password);
-  Serial.println("Connecting");
+  Serial.println("Connecting to network");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
   }
-  Serial.println("");
-  Serial.print("Connected to WiFi network with IP Address: ");
-  Serial.println(WiFi.localIP());
-  Serial.begin(9600);
+  Serial.print(String("Connected to WiFi network: ") + ssid);
   input_password.reserve(32);
+
   if (clientSSL.connect(hostAuth, 443)) {
     Serial.println("connected to token service");
-    clientSSL.print(String("POST ") + pathAuth + " HTTP/1.1\r\n" + "Host: " + hostAuth + "\r\n" +
-                    //"Connection: close\r\n" +
-                    "Content-Type: application/json\r\n" + "Content-Length: " + data.length() + "\r\n" + "\r\n" + data + "\n");
+    clientSSL.print(String("POST ") + pathAuth + " HTTP/1.1\r\n" +
+                    "Host: " + hostAuth + "\r\n" +
+                    "Content-Type: application/json\r\n" +
+                    "Content-Length: " + dataToken.length() +"\r\n" +
+                    "\r\n" + dataToken + "\n");
 
     delay(100);
     String tokenResponse = "";
@@ -65,17 +65,19 @@ void setup() {
       if (clientSSL.available()) {
         // read an incoming byte from the server and print it to serial monitor:
         char c = clientSSL.read();
-        tokenResponse = tokenResponse + c;
+        tokenResponse += c; //stock all response
       } else {
         clientSSL.stop();
+        Serial.println("Disconnected from token service");
+
       }
     }
-    String tokenTemp = tokenResponse.substring(tokenResponse.length() - 156);
-    tokenTemp.remove(tokenTemp.length() - 1);
+    String tokenTemp = tokenResponse.substring(tokenResponse.length() - 156); //remove response header to keep only body
+    tokenTemp.remove(tokenTemp.length() - 1); //remove last 3 caractere "}\n
     tokenTemp.remove(tokenTemp.length() - 1);
     tokenTemp.remove(tokenTemp.length() - 1);
     token = tokenTemp;
-    Serial.println(token);
+    Serial.println("Token recupere: " + token);
   }
   pinMode(relai, OUTPUT);
 }
@@ -89,26 +91,30 @@ void loop() {
     char key = clavier.getKey();
     if (key) {
       delay(250);
-      if (key == 'E') {
+      if (key == 'E') {  // bouton reset input
         input_password = "";
-        Serial.println("Input has been reset.");  // reset the input password
+        Serial.println("Input has been reset.");
       } else if (key == 'D') {
+        String dataCode = "{\"code\":\"" + input_password + "\"}";  // format json pour la data
+        Serial.println(String("Data a envoyer: ") + dataCode);
         digitalWrite(LED_BUILTIN, HIGH);
         if (clientSSL.connect(host, 443)) {
-          Serial.println("connected to gcp");
+          Serial.println("connected to code check sevice");
 
           clientSSL.println("GET /sites HTTP/1.1");
           clientSSL.println("Host: locbuy-dwlpupmbfa-ew.a.run.app");
           clientSSL.println("Authorization: " + token);
-          clientSSL.println();
+          clientSSL.println();  //send request
 
           delay(1000);
           String tokenResponse = "";
           while (clientSSL.connected()) {
             if (clientSSL.available()) {
               char c = clientSSL.read();
-              tokenResponse = tokenResponse + c;
+              tokenResponse += c;//stock all response
             } else {
+              Serial.println("Disconnected from code check sevice");
+
               clientSSL.stop();
             }
           }
@@ -126,9 +132,9 @@ void loop() {
         }
         Serial.println("casier: ferme");
 
-        input_password = "";
+        input_password = "";  //reset input after code is sent
       } else {
-        input_password += key;
+        input_password += key;  //concatenate code
         Serial.println("Current input: " + input_password);
       }
     }
