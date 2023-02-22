@@ -28,11 +28,11 @@ const char* ssid = "Alex";
 const char* password = "Zg5shalex";
 
 //Your Domain name with URL path or IP address with path
-const char* host = "locbuy-dwlpupmbfa-ew.a.run.app";
+const char* hostCheck = "locbuy-check-dwlpupmbfa-ew.a.run.app";
 const char* hostAuth = "locbuy-auth-dwlpupmbfa-ew.a.run.app";
 const String dataToken = "{\"client\":\"Aiolia\"}";
 const char* pathAuth = "/auth/token";
-const char* path = "/sites";
+const char* pathCheck = "/check";
 const char* serverName = "httpbin.org";
 
 String token;
@@ -48,7 +48,7 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
   }
-  Serial.print(String("Connected to WiFi network: ") + ssid);
+  Serial.println(String("Connected to WiFi network: ") + ssid);
   input_password.reserve(32);
 
   if (clientSSL.connect(hostAuth, 443)) {
@@ -98,32 +98,35 @@ void loop() {
         String dataCode = "{\"code\":\"" + input_password + "\"}";  // format json pour la data
         Serial.println(String("Data a envoyer: ") + dataCode);
         digitalWrite(LED_BUILTIN, HIGH);
-        if (clientSSL.connect(host, 443)) {
+        if (clientSSL.connect(hostCheck, 443)) {
           Serial.println("connected to code check sevice");
 
-          clientSSL.println("GET /sites HTTP/1.1");
-          clientSSL.println("Host: locbuy-dwlpupmbfa-ew.a.run.app");
-          clientSSL.println("Authorization: " + token);
-          clientSSL.println();  //send request
+          clientSSL.print(String("POST ") + pathCheck + " HTTP/1.1\r\n" +
+                              "Host: " + hostCheck + "\r\n" +
+                              "Authorization: Bearer" + token + "\r\n" +
+                              "Content-Type: application/json\r\n" +
+                              "Content-Length: " + dataCode.length() +"\r\n" +
+                              "\r\n" + dataCode + "\n");
 
           delay(1000);
-          String tokenResponse = "";
+          String codeResponse = "";
           while (clientSSL.connected()) {
             if (clientSSL.available()) {
               char c = clientSSL.read();
-              tokenResponse += c;//stock all response
+              
+              codeResponse += c;//stock all response
             } else {
               Serial.println("Disconnected from code check sevice");
 
               clientSSL.stop();
             }
           }
-          Serial.println();
+          /*Serial.println();
           for (int t = 0; t < 866; t++) {
-            tokenResponse.remove(tokenResponse.length() - 1);
+            codeResponse.remove(codeResponse.length() - 1);
           }
-          response = tokenResponse;
-          Serial.println("response: " + response);
+          response = codeResponse;
+          Serial.println("response: " + response);*/
         }
         if (response = "HTTP/1.1 200 OK") {
           digitalWrite(relai, HIGH);
